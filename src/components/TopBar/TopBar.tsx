@@ -95,43 +95,7 @@ export class TopBar extends React.Component<{
             rowGap: '8px',
           }}
         >
-          <a href="/" style={{ display: 'flex' }}>
-            <div
-              style={{
-                height: '48px',
-                width: '48px',
-                marginRight: '10px',
-                borderRadius: '50%',
-                position: 'relative',
-                backgroundColor: '#' + colorMappings.blue,
-              }}
-            >
-              <Icon
-                inverted
-                name="film"
-                size="large"
-                style={{
-                  position: 'absolute',
-                  top: 8,
-                  width: '100%',
-                  margin: '0 auto',
-                }}
-              />
-              <Icon
-                inverted
-                name="group"
-                size="large"
-                color="green"
-                style={{
-                  position: 'absolute',
-                  bottom: 8,
-                  width: '100%',
-                  margin: '0 auto',
-                }}
-              />
-            </div>
-          </a>
-          {this.props.roomTitle || this.props.roomDescription ? (
+          {(this.props.roomTitle || this.props.roomDescription) && (
             <div
               style={{
                 display: 'flex',
@@ -155,41 +119,6 @@ export class TopBar extends React.Component<{
                 {this.props.roomDescription}
               </div>
             </div>
-          ) : (
-            <React.Fragment>
-              <a href="/" style={{ display: 'flex' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <div
-                    style={{
-                      textTransform: 'uppercase',
-                      fontWeight: 700,
-                      color: '#2185d0',
-                      fontSize: '30px',
-                      lineHeight: '30px',
-                    }}
-                  >
-                    Watch
-                  </div>
-                  <div
-                    style={{
-                      textTransform: 'uppercase',
-                      fontWeight: 700,
-                      color: '#21ba45',
-                      fontSize: '30px',
-                      lineHeight: '30px',
-                      marginLeft: 'auto',
-                    }}
-                  >
-                    Party
-                  </div>
-                </div>
-              </a>
-            </React.Fragment>
           )}
           <Announce />
           <div
@@ -201,23 +130,6 @@ export class TopBar extends React.Component<{
               gap: '4px',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <a
-                href="https://github.com/fabiogaliano/watchparty"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footerIcon"
-                title="GitHub"
-              >
-                <Icon name="github" size="big" link />
-              </a>
-            </div>
             {this.props.showInviteButton && <InviteButton />}
             {!this.props.hideNewRoom && <NewRoomButton openNewTab />}
           </div>
