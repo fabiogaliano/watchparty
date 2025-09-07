@@ -6,12 +6,12 @@ import { BrowserRouter, Route } from 'react-router-dom';
 
 import App from './components/App';
 import { Home } from './components/Home';
-import { Privacy, Terms, FAQ, DiscordBot } from './components/Pages/Pages';
 import { TopBar } from './components/TopBar/TopBar';
 import { Footer } from './components/Footer/Footer';
 import { serverPath } from './utils';
 import { Create } from './components/Create/Create';
 import { Discord } from './components/Discord/Discord';
+import { FAQ } from './components/Pages/FAQ';
 import 'semantic-ui-css/semantic.min.css';
 import config from './config';
 import { DEFAULT_STATE, MetadataContext } from './MetadataContext';
@@ -74,24 +74,9 @@ class WatchParty extends React.Component {
               return <App vanity={props.match.params.vanity} />;
             }}
           />
-          <Route path="/terms">
-            <TopBar />
-            <Terms />
-            <Footer />
-          </Route>
-          <Route path="/privacy">
-            <TopBar />
-            <Privacy />
-            <Footer />
-          </Route>
           <Route path="/faq">
             <TopBar />
             <FAQ />
-            <Footer />
-          </Route>
-          <Route path="/discordBot">
-            <TopBar />
-            <DiscordBot />
             <Footer />
           </Route>
           <Route path="/discord/auth" exact>

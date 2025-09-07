@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from 'semantic-ui-react';
 import { Link } from 'react-router-dom';
 
 export const Footer = () => (
@@ -8,24 +9,28 @@ export const Footer = () => (
       paddingBottom: '1em',
       fontSize: '18px',
       color: 'white',
+      textAlign: 'center',
     }}
   >
-    <Link style={{ color: 'white' }} to="/terms">
-      Terms
-    </Link>
-    {' · '}
-    <Link style={{ color: 'white' }} to="/privacy">
-      Privacy
-    </Link>
-    {' · '}
-    <Link style={{ color: 'white' }} to="/faq">
+    <Link style={{ color: 'white', marginRight: '1em' }} to="/faq">
       FAQ
     </Link>
     {' · '}
-    <Link style={{ color: 'white' }} to="/discordBot">
-      Discord Bot
-    </Link>
-    {' · '}
-    <span>Gravitech LLC</span>
+    <a
+      href="https://github.com/fabiogaliano/watchparty"
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: 'white',
+        textDecoration: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.5em',
+        marginLeft: '1em',
+      }}
+    >
+      <Icon name="github" />
+      GitHub
+    </a>
   </div>
 );
