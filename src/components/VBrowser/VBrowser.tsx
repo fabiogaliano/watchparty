@@ -85,9 +85,11 @@ export default class VBrowser extends React.Component<{
       this.$client.on('debug', (e, data) => console.log(e, data));
     }
 
+    // TODO: Improve WebSocket URL detection logic
+    // Current: Basic hostname.includes('.') check for external domains
+    // Future: More robust protocol detection based on hostname/config
     const url =
-      location.protocol.replace('http', 'ws') +
-      '//' +
+      (this.props.hostname.includes('.') ? 'wss://' : location.protocol.replace('http', 'ws') + '//') +
       this.props.hostname +
       '/ws';
     this.$client.login(url, this.props.password, this.props.username);

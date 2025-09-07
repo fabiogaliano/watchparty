@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  watchparty:
+    build:
+      context: https://github.com/fabiogaliano/watchparty.git
+      dockerfile_inline: |
+        FROM oven/bun:1-alpine
+        WORKDIR /app
+        COPY package*.json bun.lockb* ./
+        RUN bun install --frozen-lockfile
+        COPY . .
+        RUN bun run build
+        EXPOSE 8080
+        CMD ["bun", "run", "server/server.ts"]
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - WATCHPARTY_ACCESS_TOKEN=${WATCHPARTY_ACCESS_TOKEN}
+      # Static neko integration (set these in your deployment environment)
+      - STATIC_NEKO_HOST=${STATIC_NEKO_HOST}
+      - STATIC_NEKO_PASSWORD=${STATIC_NEKO_PASSWORD}
+    restart: unless-stopped

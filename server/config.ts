@@ -57,6 +57,9 @@ const defaults = {
   OPENSUBTITLES_KEY: '', // Optional, key to OpenSubtitles API
   WATCHPARTY_ACCESS_TOKEN: '', // Optional, access token for pre-auth (self-hosted)
   WATCHPARTY_ACCESS_EXPIRY: 24, // Token expiry in hours (self-hosted)
+  // Static neko integration
+  STATIC_NEKO_HOST: '', // Static neko server hostname
+  STATIC_NEKO_PASSWORD: '', // Static neko server password
 };
 
 export default {

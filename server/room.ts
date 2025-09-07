@@ -359,7 +359,8 @@ export class Room {
       await redis.ltrim('vBrowserSessionMS', 0, 24);
     }
 
-    if (id) {
+    if (id && provider !== 'static') {
+      // Only terminate non-static VMs
       try {
         if (stateless) {
           await stateless.terminateVM(id);
@@ -378,6 +379,8 @@ export class Room {
       } catch (e) {
         console.warn(e);
       }
+    } else if (provider === 'static') {
+      console.log('[RELEASE] static neko from %s', this.roomId);
     }
   };
 
@@ -904,66 +907,31 @@ export class Room {
     // reCAPTCHA disabled for self-hosted version
 
     redisCount('vBrowserStarts');
-    this.cmdHost(socket, 'vbrowser://');
-    // Put the room in the vbrowser queue
-    this.vBrowserQueue = {
-      roomId: this.roomId,
-      queueTime: new Date(),
-      isLarge,
-      region,
-      uid,
-      clientId,
-    };
-    // Check if a vbrowser is available
-    while (this.vBrowserQueue) {
-      const { queueTime, isLarge, region, uid, roomId, clientId } =
-        this.vBrowserQueue;
-      let assignment: AssignedVM | undefined = undefined;
-      try {
-        if (stateless) {
-          const pass = crypto.randomUUID();
-          const id = await stateless.startVM(pass);
-          assignment = {
-            ...(await stateless.getVM(id)),
-            pass,
-            assignTime: Date.now(),
-          };
-        } else {
-          const { data } = await axios.post<AssignedVM>(
-            'http://localhost:' + config.VMWORKER_PORT + '/assignVM',
-            {
-              isLarge,
-              region,
-              uid,
-              roomId,
-            },
-          );
-          assignment = data;
-        }
-      } catch (e) {
-        console.warn(e);
-      }
-      if (assignment) {
-        this.vBrowser = assignment;
-        this.vBrowser.controllerClient = clientId;
-        this.vBrowser.creatorUID = uid;
-        this.vBrowser.creatorClientID = clientId;
-        const assignEnd = Date.now();
-        const assignElapsed = assignEnd - Number(queueTime);
-        await redis?.lpush('vBrowserStartMS', assignElapsed);
-        await redis?.ltrim('vBrowserStartMS', 0, 24);
-        console.log(
-          '[ASSIGN] %s to %s in %s',
-          assignment.provider + ':' + assignment.id,
-          roomId,
-          assignElapsed + 'ms',
-        );
-        this.cmdHost(
-          null,
-          'vbrowser://' + this.vBrowser.pass + '@' + this.vBrowser.host,
-        );
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    // TODO: Replace external neko server with Docker service
+    // Current: Connects to external stream.fabiogaliano.com  
+    // Next: Add neko service to docker-compose.yml using m1k1o/neko:chromium
+    if (config.STATIC_NEKO_HOST && config.STATIC_NEKO_PASSWORD) {
+      this.vBrowser = {
+        id: 'static-neko',
+        host: config.STATIC_NEKO_HOST,
+        provider: 'static',
+        large: false,
+        region: 'static',
+        pass: config.STATIC_NEKO_PASSWORD,
+        assignTime: Date.now(),
+        controllerClient: clientId,
+        creatorUID: uid,
+        creatorClientID: clientId,
+      };
+      
+      console.log('[ASSIGN] static neko to %s', this.roomId);
+      this.cmdHost(
+        null,
+        'vbrowser://' + this.vBrowser.pass + '@' + this.vBrowser.host,
+      );
+    } else {
+      socket.emit('errorMessage', 'VBrowser not configured. Set STATIC_NEKO_HOST and STATIC_NEKO_PASSWORD.');
     }
   };
 

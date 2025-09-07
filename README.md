@@ -82,24 +82,45 @@ For persistent rooms that survive server restarts
 Authentication has been completely removed. No setup required.
 
 #### Virtual Browser Setup (Advanced)
-For shared browser instances, install Docker:
+This project supports creating virtual browsers (using [neko](https://github.com/m1k1o/neko)) either on a cloud provider or with Docker containers. For development, Docker is easiest.
+
+**Requirements:**
+1. **Install Docker**: `curl -fsSL https://get.docker.com | sh`
+2. **SSH Key Setup**: Make sure you have an SSH key pair set up on the server (`id_rsa` in `~/.ssh` directory), if not, use `ssh-keygen`
+3. **Configure SSH User**: Set `DOCKER_VM_HOST_SSH_USER` if `root` is not the correct user
+4. **Public Hostname**: If your web client is not running on the same physical machine as the server, configure `DOCKER_VM_HOST` to a publicly-resolvable value (i.e. not `localhost`)
+
+**Configuration:**
 ```bash
-curl -fsSL https://get.docker.com | sh
-ssh-keygen  # Generate SSH keys if needed
+# Basic VBrowser setup
+VM_MANAGER_CONFIG=Docker:standard:US:0:3:localhost
+DOCKER_VM_HOST=localhost
+DOCKER_VM_HOST_SSH_USER=root
+VBROWSER_ADMIN_KEY=your_admin_secret_key
 ```
 
-## VPS Deployment
+For managed instance pools, configure `VM_MANAGER_CONFIG` and run the vmWorker service.
 
-For production deployment on your VPS:
+## Docker Deployment
 
-1. **Clone and setup on your server**
-2. **Configure environment** - Set `WATCHPARTY_ACCESS_TOKEN` for security
-3. **Use process manager** like PM2:
+For production deployment with VBrowser support:
+
+1. **Deploy with Docker Compose**:
    ```bash
-   bun run pm2  # Uses ecosystem.config.js
+   git clone https://github.com/fabiogaliano/watchparty.git
+   cd watchparty
+   docker compose up -d
    ```
-4. **Reverse proxy** with nginx/caddy for HTTPS
-5. **Share your instance** - Give trusted users the access token
+
+2. **Set environment variables**:
+   - `WATCHPARTY_ACCESS_TOKEN` - Your access password
+   - `STATIC_NEKO_HOST` - Your neko server hostname (e.g., `stream.example.com`)
+   - `STATIC_NEKO_PASSWORD` - Your neko server password
+
+**VBrowser Integration**:
+- Uses your existing neko server directly
+- Shared browser session across all rooms
+- No container management complexity
 
 ## Tech Stack
 
