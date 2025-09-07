@@ -850,45 +850,43 @@ export class Room {
     let uid: string = '';
 
     // No auth required - skip user validation
-
-      // Log the vbrowser creation by uid and clientid
-      if (redis) {
-        const expireTime = getStartOfDay() / 1000 + 86400;
-        if (clientId) {
-          const clientCount = await redis.zincrby(
-            'vBrowserClientIDs',
-            1,
-            clientId,
-          );
-          redis.expireat('vBrowserClientIDs', expireTime);
-          const clientMinutes = await redis.zincrby(
-            'vBrowserClientIDMinutes',
-            1,
-            clientId,
-          );
-          redis.expireat('vBrowserClientIDMinutes', expireTime);
-        }
-        if (uid) {
-          const uidCount = await redis.zincrby('vBrowserUIDs', 1, uid);
-          redis.expireat('vBrowserUIDs', expireTime);
-          const uidMinutes = await redis.zincrby('vBrowserUIDMinutes', 1, uid);
-          redis.expireat('vBrowserUIDMinutes', expireTime);
-          // TODO limit users based on client or uid usage
-        }
-      }
-      // check if the user already has a VM already in postgres
-      if (postgres) {
-        const { rows } = await postgres.query(
-          'SELECT count(1) from vbrowser WHERE uid = $1',
-          [decoded.uid],
+    // Log the vbrowser creation by uid and clientid
+    if (redis) {
+      const expireTime = getStartOfDay() / 1000 + 86400;
+      if (clientId) {
+        const clientCount = await redis.zincrby(
+          'vBrowserClientIDs',
+          1,
+          clientId,
         );
-        if (rows[0].count >= 2) {
-          socket.emit(
-            'errorMessage',
-            'There is already an active vBrowser for this user.',
-          );
-          return;
-        }
+        redis.expireat('vBrowserClientIDs', expireTime);
+        const clientMinutes = await redis.zincrby(
+          'vBrowserClientIDMinutes',
+          1,
+          clientId,
+        );
+        redis.expireat('vBrowserClientIDMinutes', expireTime);
+      }
+      if (uid) {
+        const uidCount = await redis.zincrby('vBrowserUIDs', 1, uid);
+        redis.expireat('vBrowserUIDs', expireTime);
+        const uidMinutes = await redis.zincrby('vBrowserUIDMinutes', 1, uid);
+        redis.expireat('vBrowserUIDMinutes', expireTime);
+        // TODO limit users based on client or uid usage
+      }
+    }
+    // check if the user already has a VM already in postgres
+    if (postgres) {
+      const { rows } = await postgres.query(
+        'SELECT count(1) from vbrowser WHERE uid = $1',
+        [uid],
+      );
+      if (rows[0].count >= 2) {
+        socket.emit(
+          'errorMessage',
+          'There is already an active vBrowser for this user.',
+        );
+        return;
       }
     }
     let isLarge = false;
@@ -897,9 +895,9 @@ export class Room {
     let isSubscriber = true;
     // Check if user is subscriber or firebase not configured, if so allow sub options
     if (isSubscriber || !config.FIREBASE_ADMIN_SDK_CONFIG) {
-      isLarge = data.options?.size === 'large';
-      if (data.options?.region) {
-        region = data.options?.region;
+      isLarge = data.options && data.options.size === 'large';
+      if (data.options && data.options.region) {
+        region = data.options.region;
       }
     }
 

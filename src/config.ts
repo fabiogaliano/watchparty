@@ -1,5 +1,6 @@
 export default {
   VITE_SERVER_HOST: import.meta.env.VITE_SERVER_HOST,
+  VITE_SERVER_PORT: import.meta.env.VITE_SERVER_PORT,
   VITE_OAUTH_REDIRECT_HOSTNAME:
     import.meta.env.VITE_OAUTH_REDIRECT_HOSTNAME ?? 'https://www.watchparty.me',
   VITE_FIREBASE_CONFIG:

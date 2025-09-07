@@ -40,12 +40,12 @@ A **self-hosted** web application for watching videos together - **no authentica
 
 3. **Start the Application**
    ```bash
-   bun run dev      # Backend server (port 3000)
+   bun run dev      # Backend server (port 3000, configurable via PORT env var)
    bun run ui       # Frontend dev server (separate terminal)
    ```
 
 4. **Access Your Instance**
-   - Open http://localhost:3000
+   - Open http://localhost:3000 (or your configured PORT)
    - Enter your access token when prompted
    - Create rooms and share links with friends!
 

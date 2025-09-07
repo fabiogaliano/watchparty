@@ -40,7 +40,7 @@ bun add -d <package> # Add dev dependency
 
 ### Start Development
 ```bash
-bun run dev       # Start backend server with hot reload (port 3000)
+bun run dev       # Start backend server with hot reload (port 3000, configurable via PORT env var)
 bun run ui        # Start frontend dev server (Vite)
 ```
 
@@ -117,7 +117,7 @@ The app handles various media types through detection utilities:
 - **Uses Bun** as package manager and runtime (faster than npm/node)
 - Backend runs with `bun --watch` for hot reload (replaces ts-node-dev)
 - Backend uses **ES modules** with `.ts` extensions in imports
-- Frontend uses **Vite** with hot reload on port 3000 (configurable)
+- Frontend uses **Vite** with hot reload, connects to backend via configurable PORT
 - WebRTC requires **HTTPS** for camera/microphone features
 - Room synchronization handled via Socket.IO events in room.ts
 - Virtual browsers run in Docker containers or cloud VMs
