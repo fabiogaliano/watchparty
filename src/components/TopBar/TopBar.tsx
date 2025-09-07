@@ -8,10 +8,6 @@ import {
   Image,
   SemanticSIZES,
 } from 'semantic-ui-react';
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import { LoginModal } from '../Modal/LoginModal';
-import { SubscribeButton } from '../SubscribeButton/SubscribeButton';
 import { ProfileModal } from '../Modal/ProfileModal';
 import Announce from '../Announce/Announce';
 import { InviteButton } from '../InviteButton/InviteButton';
@@ -20,20 +16,15 @@ import { MetadataContext } from '../../MetadataContext';
 import config from '../../config';
 
 export async function createRoom(
-  user: firebase.User | undefined,
   openNewTab: boolean | undefined,
   video: string = '',
 ) {
-  const uid = user?.uid;
-  const token = await user?.getIdToken();
   const response = await window.fetch(serverPath + '/createRoom', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      uid,
-      token,
       video,
     }),
   });
@@ -53,7 +44,7 @@ export class NewRoomButton extends React.Component<{
   static contextType = MetadataContext;
   declare context: React.ContextType<typeof MetadataContext>;
   createRoom = async () => {
-    await createRoom(this.context.user, this.props.openNewTab);
+    await createRoom(this.props.openNewTab);
   };
   render() {
     return (
@@ -78,204 +69,9 @@ export class NewRoomButton extends React.Component<{
   }
 }
 
-type SignInButtonProps = {
-  fluid?: boolean;
-};
+// SignInButton removed - no authentication required in self-hosted version
 
-export class SignInButton extends React.Component<SignInButtonProps> {
-  static contextType = MetadataContext;
-  declare context: React.ContextType<typeof MetadataContext>;
-  public state = { isLoginOpen: false, isProfileOpen: false, userImage: null };
-
-  async componentDidUpdate(prevProps: SignInButtonProps) {
-    if (this.context.user && !this.state.userImage) {
-      this.setState({ userImage: await getUserImage(this.context.user) });
-    }
-  }
-
-  facebookSignIn = async () => {
-    const provider = new firebase.auth.FacebookAuthProvider();
-    await firebase.auth().signInWithPopup(provider);
-  };
-
-  googleSignIn = async () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await firebase.auth().signInWithPopup(provider);
-  };
-
-  signOut = () => {
-    firebase.auth().signOut();
-    window.location.reload();
-    this.setState({ userImage: null });
-  };
-
-  render() {
-    if (this.context.user) {
-      return (
-        <div
-          style={{
-            margin: '4px',
-            minWidth: '40px',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <Image
-            avatar
-            src={this.state.userImage}
-            onClick={() => this.setState({ isProfileOpen: true })}
-          />
-          {this.state.isProfileOpen && this.context.user && (
-            <ProfileModal
-              userImage={this.state.userImage}
-              close={() => this.setState({ isProfileOpen: false })}
-            />
-          )}
-        </div>
-      );
-    }
-    const enabledOptions = config.VITE_FIREBASE_SIGNIN_METHODS.split(',');
-    const components: Record<string, JSX.Element> = {
-      facebook: (
-        <Dropdown.Item onClick={this.facebookSignIn}>
-          <Icon name="facebook" />
-          Facebook
-        </Dropdown.Item>
-      ),
-      google: (
-        <Dropdown.Item onClick={this.googleSignIn}>
-          <Icon name="google" />
-          Google
-        </Dropdown.Item>
-      ),
-      email: (
-        <Dropdown.Item onClick={() => this.setState({ isLoginOpen: true })}>
-          <Icon name="mail" />
-          Email
-        </Dropdown.Item>
-      ),
-    };
-    return (
-      <React.Fragment>
-        {this.state.isLoginOpen && (
-          <LoginModal
-            closeModal={() => this.setState({ isLoginOpen: false })}
-          />
-        )}
-        <Popup
-          basic
-          content="Sign in for additional features"
-          trigger={
-            <Dropdown
-              style={{ height: '36px' }}
-              icon="sign in"
-              labeled
-              className="icon"
-              button
-              text="Sign in"
-              fluid={this.props.fluid}
-            >
-              <Dropdown.Menu>
-                {enabledOptions.map((opt) => {
-                  return components[opt];
-                })}
-              </Dropdown.Menu>
-            </Dropdown>
-          }
-        />
-      </React.Fragment>
-    );
-  }
-}
-
-export class ListRoomsButton extends React.Component<{}> {
-  static contextType = MetadataContext;
-  declare context: React.ContextType<typeof MetadataContext>;
-  public state = { rooms: [] as PersistentRoom[] };
-
-  componentDidMount() {
-    this.refreshRooms();
-  }
-
-  refreshRooms = async () => {
-    if (this.context.user) {
-      const token = await this.context.user.getIdToken();
-      const response = await fetch(
-        serverPath + `/listRooms?uid=${this.context.user?.uid}&token=${token}`,
-      );
-      this.setState({ rooms: await response.json() });
-    }
-  };
-
-  deleteRoom = async (roomId: string) => {
-    if (this.context.user) {
-      const token = await this.context.user.getIdToken();
-      await fetch(
-        serverPath +
-          `/deleteRoom?uid=${this.context.user?.uid}&token=${token}&roomId=${roomId}`,
-        { method: 'DELETE' },
-      );
-      this.setState({
-        rooms: this.state.rooms.filter((room) => room.roomId !== roomId),
-      });
-      this.refreshRooms();
-    }
-  };
-
-  render() {
-    return (
-      <Dropdown
-        style={{ height: '36px' }}
-        icon="group"
-        labeled
-        className="icon"
-        button
-        text="My Rooms"
-        onClick={this.refreshRooms}
-        scrolling
-        pointing="top right"
-        fluid
-      >
-        <Dropdown.Menu>
-          {this.state.rooms.length === 0 && (
-            <Dropdown.Item disabled>You have no permanent rooms.</Dropdown.Item>
-          )}
-          {this.state.rooms.map((room: any) => {
-            return (
-              <Dropdown.Item
-                key={room.roomId}
-                link="true"
-                href={
-                  room.vanity ? '/r/' + room.vanity : '/watch' + room.roomId
-                }
-              >
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  {room.vanity ? `/r/${room.vanity}` : room.roomId}
-                  <div style={{ marginLeft: 'auto', paddingLeft: '20px' }}>
-                    <Button
-                      icon
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        e.nativeEvent.stopImmediatePropagation();
-                        e.preventDefault();
-                        this.deleteRoom(room.roomId);
-                      }}
-                      color="red"
-                      size="mini"
-                    >
-                      <Icon name="trash" />
-                    </Button>
-                  </div>
-                </div>
-              </Dropdown.Item>
-            );
-          })}
-        </Dropdown.Menu>
-      </Dropdown>
-    );
-  }
-}
+// ListRoomsButton removed - permanent room management disabled in self-hosted version
 
 export class TopBar extends React.Component<{
   hideNewRoom?: boolean;
@@ -289,7 +85,6 @@ export class TopBar extends React.Component<{
   static contextType = MetadataContext;
   declare context: React.ContextType<typeof MetadataContext>;
   render() {
-    const subscribeButton = <SubscribeButton />;
     return (
       <React.Fragment>
         <div
@@ -414,16 +209,7 @@ export class TopBar extends React.Component<{
               }}
             >
               <a
-                href="https://discord.gg/3rYj5HV"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="footerIcon"
-                title="Discord"
-              >
-                <Icon name="discord" size="big" link />
-              </a>
-              <a
-                href="https://github.com/howardchung/watchparty"
+                href="https://github.com/fabiogaliano/watchparty"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="footerIcon"
@@ -434,11 +220,6 @@ export class TopBar extends React.Component<{
             </div>
             {this.props.showInviteButton && <InviteButton />}
             {!this.props.hideNewRoom && <NewRoomButton openNewTab />}
-            {!this.props.hideMyRooms && this.context.user && (
-              <ListRoomsButton />
-            )}
-            {subscribeButton}
-            {!this.props.hideSignin && <SignInButton />}
           </div>
         </div>
       </React.Fragment>

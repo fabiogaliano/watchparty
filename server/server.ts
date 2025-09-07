@@ -334,46 +334,19 @@ app.post('/createRoom', async (req, res) => {
 });
 
 app.post('/manageSub', async (req, res) => {
-  // No auth required - subscription management disabled
+  // Subscription management disabled for self-hosted version
   res.status(404).json({ error: 'subscription management not available' });
-  return;
-  if (!decoded.email) {
-    res.status(400).json({ error: 'no email found' });
-    return;
-  }
-  const customer = await getCustomerByEmail(decoded.email);
-  if (!customer) {
-    res.status(400).json({ error: 'customer not found' });
-    return;
-  }
-  const session = await createSelfServicePortal(
-    customer.id,
-    req.body?.return_url,
-  );
-  res.json(session);
 });
 
 app.delete('/deleteAccount', async (req, res) => {
-  // No auth required - account deletion disabled
+  // Account deletion disabled for self-hosted version
   res.status(404).json({ error: 'account deletion not available' });
-  return;
-  if (postgres) {
-    // Delete rooms
-    await postgres.query('DELETE FROM room WHERE owner = $1', [decoded.uid]);
-    // Delete linked accounts
-    await postgres.query('DELETE FROM link_account WHERE uid = $1', [
-      decoded.uid,
-    ]);
-  }
-  await deleteUser(decoded.uid);
-  redisCount('deleteAccount');
-  res.json({});
 });
 
 app.get('/metadata', async (req, res) => {
   // No auth required - all users are subscribers
   const decoded = null;
-  let isSubscriber = await getIsSubscriberByEmail(decoded?.email);
+  let isSubscriber = true; // Always true for self-hosted version
   // Has the user ever been a subscriber?
   // const customer = await getCustomerByEmail(decoded.email);
   let isFreePoolFull = false;
@@ -434,21 +407,22 @@ const authLimiter = rateLimit({
 });
 
 // Access control endpoint for self-hosted version
-app.post('/api/auth/verify', authLimiter, async (req, res) => {
+app.post('/api/auth/verify', authLimiter, async (req, res): Promise<void> => {
   const { accessCode } = req.body;
   
   if (!config.WATCHPARTY_ACCESS_TOKEN) {
     // If no access token configured, allow all access
-    return res.json({ success: true, expiryHours: config.WATCHPARTY_ACCESS_EXPIRY });
+    res.json({ success: true, expiryHours: config.WATCHPARTY_ACCESS_EXPIRY });
+    return;
   }
   
   // Add slight delay to make brute force attacks harder
   await new Promise(resolve => setTimeout(resolve, 500));
   
   if (accessCode === config.WATCHPARTY_ACCESS_TOKEN) {
-    return res.json({ success: true, expiryHours: config.WATCHPARTY_ACCESS_EXPIRY });
+    res.json({ success: true, expiryHours: config.WATCHPARTY_ACCESS_EXPIRY });
   } else {
-    return res.status(401).json({ error: 'Invalid access code' });
+    res.status(401).json({ error: 'Invalid access code' });
   }
 });
 
@@ -465,87 +439,16 @@ app.delete('/deleteRoom', async (req, res) => {
 app.get('/linkAccount', async (req, res) => {
   // Account linking disabled for self-hosted version
   res.status(404).json({ error: 'account linking not available' });
-  return;
-  if (!postgres) {
-    res.status(400).json({ error: 'invalid database client' });
-    return;
-  }
-  // Get the linked accounts for the user
-  let linkAccounts: LinkAccount[] = [];
-  if (decoded?.uid && postgres) {
-    const { rows } = await postgres.query(
-      'SELECT kind, accountid, accountname, discriminator FROM link_account WHERE uid = $1',
-      [decoded?.uid],
-    );
-    linkAccounts = rows;
-  }
-  res.json(linkAccounts);
 });
 
 app.post('/linkAccount', async (req, res) => {
-  const decoded = await validateUserToken(
-    req.body?.uid as string,
-    req.body?.token as string,
-  );
-  if (!decoded) {
-    res.status(400).json({ error: 'invalid user token' });
-    return;
-  }
-  if (!postgres) {
-    res.status(400).json({ error: 'invalid database client' });
-    return;
-  }
-  const kind = req.body?.kind;
-  if (kind === 'discord') {
-    const tokenType = req.body?.tokenType;
-    const accessToken = req.body.accessToken;
-    // Get the token and verify the user
-    const response = await axios.get('https://discord.com/api/users/@me', {
-      headers: {
-        authorization: `${tokenType} ${accessToken}`,
-      },
-    });
-    const accountid = response.data.id;
-    const accountname = response.data.username;
-    const discriminator = response.data.discriminator;
-    // Store the user id, username, discriminator
-    await upsertObject(
-      postgres,
-      'link_account',
-      {
-        accountid: accountid,
-        accountname: accountname,
-        discriminator: discriminator,
-        uid: decoded.uid,
-        kind: kind,
-      },
-      { uid: true, kind: true },
-    );
-    res.json({});
-  } else {
-    res.status(400).json({ error: 'unsupported kind' });
-  }
+  // Account linking disabled for self-hosted version
+  res.status(404).json({ error: 'account linking not available' });
 });
 
 app.delete('/linkAccount', async (req, res) => {
-  // TODO read from req.query instead
-  const decoded = await validateUserToken(
-    req.body?.uid as string,
-    req.body?.token as string,
-  );
-  if (!decoded) {
-    res.status(400).json({ error: 'invalid user token' });
-    return;
-  }
-  if (!postgres) {
-    res.status(400).json({ error: 'invalid database client' });
-    return;
-  }
-  await postgres.query(
-    'DELETE FROM link_account WHERE uid = $1 AND kind = $2',
-    [decoded.uid, req.body.kind],
-  );
-  res.json({});
+  // Account linking disabled for self-hosted version
+  res.status(404).json({ error: 'account linking not available' });
 });
 
 app.get('/generateName', async (req, res) => {

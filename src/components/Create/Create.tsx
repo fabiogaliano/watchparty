@@ -17,7 +17,6 @@ export const Create = () => {
         ref={buttonEl}
         onClick={() => {
           createRoom(
-            user,
             false,
             new URLSearchParams(window.location.search).get('video') ??
               undefined,

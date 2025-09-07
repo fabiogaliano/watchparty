@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, Header, Table, Button, Icon } from 'semantic-ui-react';
 import { loadStripe } from '@stripe/stripe-js';
-import { SignInButton } from '../TopBar/TopBar';
+// SignInButton removed - subscriptions disabled in self-hosted version
 import config from '../../config';
 import { MetadataContext } from '../../MetadataContext';
 
@@ -171,7 +171,7 @@ export class SubscribeModal extends React.Component<{
                 </Button>
               ) : (
                 <div>
-                  Please sign in to subscribe: <SignInButton />
+                  Subscriptions are disabled in the self-hosted version.
                 </div>
               )}
             </div>

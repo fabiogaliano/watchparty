@@ -46,12 +46,9 @@ export const UserMenu = ({
             content="Kick"
             negative
             icon="ban"
-            onClick={async () => {
-              const token = await user?.getIdToken();
+            onClick={() => {
               socket.emit('kickUser', {
                 userToBeKicked: userToManage,
-                uid: user?.uid,
-                token,
               });
               setIsOpen(false);
             }}
@@ -60,13 +57,10 @@ export const UserMenu = ({
             <Button
               content="Delete Message"
               icon="comment"
-              onClick={async () => {
-                const token = await user?.getIdToken();
+              onClick={() => {
                 socket.emit('CMD:deleteChatMessages', {
                   author: userToManage,
                   timestamp: timestamp,
-                  uid: user?.uid,
-                  token,
                 });
                 setIsOpen(false);
               }}
@@ -75,12 +69,9 @@ export const UserMenu = ({
           <Button
             content="Delete User's Messages"
             icon="comments"
-            onClick={async () => {
-              const token = await user?.getIdToken();
+            onClick={() => {
               socket.emit('CMD:deleteChatMessages', {
                 author: userToManage,
-                uid: user?.uid,
-                token,
               });
               setIsOpen(false);
             }}

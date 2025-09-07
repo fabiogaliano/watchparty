@@ -1133,7 +1133,7 @@ export class Room {
       return;
     }
     // No auth required - anyone can set room password
-    const isSubscriber = await getIsSubscriberByEmail(decoded?.email);
+    const isSubscriber = true;
     const {
       password,
       vanity,
@@ -1194,7 +1194,7 @@ export class Room {
       const result = await postgres.query(query, [
         ...Object.values(roomObj),
         this.roomId,
-        decoded.uid,
+        'anonymous',
       ]);
       const row = result.rows[0];
       this.isChatDisabled = Boolean(row?.isChatDisabled);
