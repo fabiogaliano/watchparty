@@ -8,8 +8,8 @@ const defaults = {
   FIREBASE_ADMIN_SDK_CONFIG: '', // Optional, for features requiring sign-in/authentication
   FIREBASE_DATABASE_URL: '', // Optional (unused)
   STRIPE_SECRET_KEY: '', // Optional, for subscriptions
-  VBROWSER_SESSION_SECONDS: 10800, // Number of seconds to allow vbrowsers to run for
-  VBROWSER_SESSION_SECONDS_LARGE: 86400, // Number of seconds to allow large vbrowsers to run for
+  VBROWSER_SESSION_SECONDS: 18000, // 5 hours for vbrowsers (self-hosted)
+  VBROWSER_SESSION_SECONDS_LARGE: 18000, // 5 hours for large vbrowsers (self-hosted)
   VM_POOL_RAMP_DOWN_HOURS: '', // Comma separated start/end UTC hours of the ramp down period
   VM_POOL_RAMP_UP_HOURS: '', // Comma separated start/end UTC hours of the ramp up period
   VBROWSER_TAG: '', // Optional, tag to put on VBrowser VM instances
@@ -38,8 +38,8 @@ const defaults = {
   BETA_USER_EMAILS: '', // Comma-delimited list of user emails to include in the beta
   CUSTOM_SETTINGS_HOSTNAME: '', // Hostname to send different config settings to client
   STREAM_PATH: '', // Path of server that supports additional video streams
-  ROOM_CAPACITY: 0, // Maximum capacity of a standard room. Set to 0 for unlimited.
-  ROOM_CAPACITY_SUB: 0, // Maximum capacity of a sub room. Set to 0 for unlimited.
+  ROOM_CAPACITY: 5, // Maximum capacity of a standard room (self-hosted)
+  ROOM_CAPACITY_SUB: 5, // Maximum capacity of a sub room (self-hosted)
   BUILD_DIRECTORY: 'build', // Name of the directory where the built React UI is served from
   VM_MIN_UPTIME_MINUTES: 0, // Number of minutes of the hour VMs must exist for before being eligible for termination
   SHARD: undefined, // Shard ID of the web server (configure in ecosystem.config.js)
@@ -55,6 +55,8 @@ const defaults = {
   TWITCH_PROXY_PATH: '', // Optional, URL of the server that can proxy twitch HLS stream playlists and segments
   VBROWSER_ADMIN_KEY: '', // Optional, the key to hit admin endpoints on the vbrowser
   OPENSUBTITLES_KEY: '', // Optional, key to OpenSubtitles API
+  WATCHPARTY_ACCESS_TOKEN: '', // Optional, access token for pre-auth (self-hosted)
+  WATCHPARTY_ACCESS_EXPIRY: 24, // Token expiry in hours (self-hosted)
 };
 
 export default {

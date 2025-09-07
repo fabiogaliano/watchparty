@@ -5,6 +5,7 @@ import bodyParser from 'body-parser';
 import compression from 'compression';
 import os from 'os';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import https from 'https';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -21,7 +22,6 @@ import {
   createSelfServicePortal,
   getIsSubscriberByEmail,
 } from './utils/stripe.ts';
-import { deleteUser, validateUserToken } from './utils/firebase.ts';
 import path from 'path';
 import { getStartOfDay } from './utils/time.ts';
 import { getSessionLimitSeconds } from './vm/utils.ts';
@@ -314,8 +314,8 @@ app.post('/createRoom', async (req, res) => {
       throw e;
     }
   }
-  const decoded = await validateUserToken(req.body?.uid, req.body?.token);
-  newRoom.creator = decoded?.email;
+  // No auth required - creator is anonymous
+  newRoom.creator = 'anonymous';
   const preload = (req.body?.video || '').slice(0, 20000);
   if (preload) {
     redisCount('createRoomPreload');
@@ -334,11 +334,9 @@ app.post('/createRoom', async (req, res) => {
 });
 
 app.post('/manageSub', async (req, res) => {
-  const decoded = await validateUserToken(req.body?.uid, req.body?.token);
-  if (!decoded) {
-    res.status(400).json({ error: 'invalid user token' });
-    return;
-  }
+  // No auth required - subscription management disabled
+  res.status(404).json({ error: 'subscription management not available' });
+  return;
   if (!decoded.email) {
     res.status(400).json({ error: 'no email found' });
     return;
@@ -356,12 +354,9 @@ app.post('/manageSub', async (req, res) => {
 });
 
 app.delete('/deleteAccount', async (req, res) => {
-  // TODO pass this in req.query instead
-  const decoded = await validateUserToken(req.body?.uid, req.body?.token);
-  if (!decoded) {
-    res.status(400).json({ error: 'invalid user token' });
-    return;
-  }
+  // No auth required - account deletion disabled
+  res.status(404).json({ error: 'account deletion not available' });
+  return;
   if (postgres) {
     // Delete rooms
     await postgres.query('DELETE FROM room WHERE owner = $1', [decoded.uid]);
@@ -376,10 +371,8 @@ app.delete('/deleteAccount', async (req, res) => {
 });
 
 app.get('/metadata', async (req, res) => {
-  const decoded = await validateUserToken(
-    req.query?.uid as string,
-    req.query?.token as string,
-  );
+  // No auth required - all users are subscribers
+  const decoded = null;
   let isSubscriber = await getIsSubscriberByEmail(decoded?.email);
   // Has the user ever been a subscriber?
   // const customer = await getCustomerByEmail(decoded.email);
@@ -393,19 +386,9 @@ app.get('/metadata', async (req, res) => {
   } catch (e: any) {
     console.warn('[WARNING]: free pool check failed: %s', e.code);
   }
-  const beta =
-    decoded?.email != null &&
-    Boolean(config.BETA_USER_EMAILS.split(',').includes(decoded?.email));
-  const streamPath = beta ? config.STREAM_PATH : undefined;
-  // log metrics but don't wait for it
-  if (postgres && decoded?.uid) {
-    upsertObject(
-      postgres,
-      'active_user',
-      { uid: decoded?.uid, lastActiveTime: new Date() },
-      { uid: true },
-    );
-  }
+  // No auth - all users have beta access
+  const beta = true;
+  const streamPath = config.STREAM_PATH;
   res.json({
     isSubscriber,
     isFreePoolFull,
@@ -441,47 +424,48 @@ app.get('/resolveShard/:roomId', async (req, res) => {
   res.send(String(config.SHARD ? shardNum : ''));
 });
 
-app.get('/listRooms', async (req, res) => {
-  const decoded = await validateUserToken(
-    req.query?.uid as string,
-    req.query?.token as string,
-  );
-  if (!decoded) {
-    res.status(400).json({ error: 'invalid user token' });
-    return;
+// Rate limiter for auth endpoint - prevent brute force attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: 'Too many authentication attempts, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Access control endpoint for self-hosted version
+app.post('/api/auth/verify', authLimiter, async (req, res) => {
+  const { accessCode } = req.body;
+  
+  if (!config.WATCHPARTY_ACCESS_TOKEN) {
+    // If no access token configured, allow all access
+    return res.json({ success: true, expiryHours: config.WATCHPARTY_ACCESS_EXPIRY });
   }
-  const result = await postgres?.query<PersistentRoom>(
-    `SELECT "roomId", vanity from room WHERE owner = $1`,
-    [decoded.uid],
-  );
-  res.json(result?.rows ?? []);
+  
+  // Add slight delay to make brute force attacks harder
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  if (accessCode === config.WATCHPARTY_ACCESS_TOKEN) {
+    return res.json({ success: true, expiryHours: config.WATCHPARTY_ACCESS_EXPIRY });
+  } else {
+    return res.status(401).json({ error: 'Invalid access code' });
+  }
+});
+
+app.get('/listRooms', async (req, res) => {
+  // No auth required - return empty room list for self-hosted version
+  res.json([]);
 });
 
 app.delete('/deleteRoom', async (req, res) => {
-  const decoded = await validateUserToken(
-    req.query?.uid as string,
-    req.query?.token as string,
-  );
-  if (!decoded) {
-    res.status(400).json({ error: 'invalid user token' });
-    return;
-  }
-  const result = await postgres?.query(
-    `DELETE from room WHERE owner = $1 and "roomId" = $2`,
-    [decoded.uid, req.query.roomId],
-  );
-  res.json(result?.rows);
+  // Room deletion disabled for self-hosted version
+  res.status(404).json({ error: 'room deletion not available' });
 });
 
 app.get('/linkAccount', async (req, res) => {
-  const decoded = await validateUserToken(
-    req.query?.uid as string,
-    req.query?.token as string,
-  );
-  if (!decoded) {
-    res.status(400).json({ error: 'invalid user token' });
-    return;
-  }
+  // Account linking disabled for self-hosted version
+  res.status(404).json({ error: 'account linking not available' });
+  return;
   if (!postgres) {
     res.status(400).json({ error: 'invalid database client' });
     return;

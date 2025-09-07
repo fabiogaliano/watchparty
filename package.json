@@ -17,6 +17,7 @@
     "dotenv": "^16.3.2",
     "eventemitter3": "^4.0.7",
     "express": "^5.0.1",
+    "express-rate-limit": "^8.1.0",
     "fast-xml-parser": "^4.3.3",
     "firebase": "^9.23.0",
     "firebase-admin": "^11.11.1",

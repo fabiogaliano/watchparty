@@ -1,84 +1,109 @@
-# WatchParty
+# WatchParty (Self-Hosted)
 
 ![screenshot](https://github.com/howardchung/watchparty/raw/main/public/screenshot_full.png)
 
-An website for watching videos together.
+A **self-hosted** web application for watching videos together - **no authentication required**.
 
-## Description
+## Features
 
-- Synchronizes the video being watched with the current room
-- Plays, pauses, and seeks are synced to all watchers
-- Supports:
+- **No signup required** - Just create a room and share the link
+- **Room capacity**: Max 5 users per room (configurable)
+- **Synchronized playback** - Plays, pauses, and seeks are synced to all watchers
+- **Media support**:
   - Screen sharing (full screen, browser tab or application)
-  - Launch a shared virtual browser in the cloud (similar to rabb.it)
+  - Shared virtual browsers (5-hour sessions)
   - Stream-your-own-file
   - Video files on the Internet (anything accessible via HTTP)
   - YouTube videos
   - Magnet links (via WebTorrent)
   - .m3u8 streams (HLS)
-- Create separate rooms for users on demand
-- Text chat
-- Video chat
+- **Communication**:
+  - Text chat
+  - Video chat
+- **Access control**: Optional password protection for private deployment
 
-## Quick Start
+## Quick Start (Self-Hosted)
 
-- Clone this repo via `git clone git@github.com:howardchung/watchparty.git`
-- Install npm dependencies for the project via `npm install`
-- Start the server via `npm run dev`
-  - Defaults to port 8080, customize with `PORT` env var
-  - Set `SSL_KEY_FILE` and `SSL_CRT_FILE` for HTTPS.
-- Start the React application in a separate shell and port via `npm run ui`
-  - Point to server using `VITE_SERVER_HOST` env var if you customized it above
-  - Set `SSL_KEY_FILE` and `SSL_CRT_FILE` for HTTPS.
-  - HTTPS is required by the browser for some WebRTC features (camera, etc.)
-- Duplicate the `.env.example` file
-- Rename it to `.env`
-- Add config for the features you want as described in the advanced setup
+1. **Clone and Install**
+   ```bash
+   git clone git@github.com:fabiogaliano/watchparty.git
+   cd watchparty
+   bun install  # or npm install
+   ```
 
-## Advanced Setup (optional)
+2. **Configure Access Control** (Recommended)
+   ```bash
+   cp .env.example .env
+   # Edit .env and set:
+   WATCHPARTY_ACCESS_TOKEN=your_secret_password_here
+   ```
 
-All of these are optional and the application should work without them. Some functionality may be missing.
+3. **Start the Application**
+   ```bash
+   bun run dev      # Backend server (port 3000)
+   bun run ui       # Frontend dev server (separate terminal)
+   ```
 
-### YouTube API (video search)
+4. **Access Your Instance**
+   - Open http://localhost:3000
+   - Enter your access token when prompted
+   - Create rooms and share links with friends!
 
-This project uses the YouTube API for video search, which requires an API key. You can get one from Google [here](https://console.developers.google.com).
+**For HTTPS** (required for camera/microphone):
+- Set `SSL_KEY_FILE` and `SSL_CRT_FILE` environment variables
 
-Without an API key you won't be able to search for videos via the searchbox.
+## Self-Hosted Modifications
 
-After creating a **YouTube Data API V3** access, you can create an API key which you can add to your environment variables by copying the `.env.example`, renaming it to `.env` and adding the key to the YOUTUBE_API_KEY variable.
+This version has been modified to remove SaaS limitations:
 
-After that restart your server to enable the YouTube API access on your server.
+### ✅ Changes Made
+- **Authentication removed** - No Firebase, no user accounts required
+- **Subscription limits removed** - All users treated as "premium subscribers"
+- **reCAPTCHA disabled** - No spam protection needed for private deployment  
+- **Room capacity**: Set to 5 users per room (configurable in `server/config.ts`)
+- **VBrowser sessions**: Extended to 5 hours (was 3 hours)
+- **Access control**: Simple token-based protection added
 
-### Firebase Config (user authentication)
+### Optional Enhancements
 
-This project uses Firebase for authentication. This is used for user login, account management, subscriptions, and handling some features like room locking/permanence.
+#### YouTube API (video search)
+```bash
+YOUTUBE_API_KEY=your_youtube_api_key_here
+```
+Get an API key from [Google Cloud Console](https://console.developers.google.com) → YouTube Data API V3
 
-To set up, create a new Firebase app (or reuse an old one) from [here](https://console.firebase.google.com/). After creating an application, click on the settings cog icon in the left menu next to "Project overview" and click on project settings. From there, scroll down, create a web application and copy the Firebase SDK configuration snippet JSON data.
+#### Database Persistence
+```bash  
+DATABASE_URL=postgresql://postgres@localhost:5432/postgres?sslmode=disable
+```
+For persistent rooms that survive server restarts
 
-Next, you have to stringify it: `JSON.stringify(PASTE_CONFIG_HERE)` in your browser console, then add it to `VITE_FIREBASE_CONFIG` in your .env file.
+#### ~~Firebase Config~~ **REMOVED**
+Authentication has been completely removed. No setup required.
 
-For server verification of accounts you'll also need `FIREBASE_ADMIN_SDK_CONFIG`, which you should do the same steps for.
+#### Virtual Browser Setup (Advanced)
+For shared browser instances, install Docker:
+```bash
+curl -fsSL https://get.docker.com | sh
+ssh-keygen  # Generate SSH keys if needed
+```
 
-### Virtual Browser Setup
+## VPS Deployment
 
-This project supports creating virtual browsers (using https://github.com/m1k1o/neko) either on a cloud provider or with Docker containers. For development, Docker is easiest.
+For production deployment on your VPS:
 
-- Install Docker: `curl -fsSL https://get.docker.com | sh`
-- Make sure you have an SSH key pair set up on the server (`id_rsa` in `~/.ssh` directory), if not, use `ssh-keygen`.
-- Configure `DOCKER_VM_HOST_SSH_USER` if `root` is not the correct user
-- Note: If your web client is not running on the same physical machine as the server, you will also need to configure `DOCKER_VM_HOST` to a publically-resolvable value (i.e. not localhost)
-- If you want to run managed instance pools (whether on cloud or with Docker), configure `VM_MANAGER_CONFIG` and run the vmWorker service.
+1. **Clone and setup on your server**
+2. **Configure environment** - Set `WATCHPARTY_ACCESS_TOKEN` for security
+3. **Use process manager** like PM2:
+   ```bash
+   bun run pm2  # Uses ecosystem.config.js
+   ```
+4. **Reverse proxy** with nginx/caddy for HTTPS
+5. **Share your instance** - Give trusted users the access token
 
-### Room Persistence
+## Tech Stack
 
-- Configure Postgres by adding DATABASE_URL to your .env file and then setting up the database schema
-- This allows rooms to persist between server restarts
-
-## Tech
-
-- React
-- TypeScript
-- Node.js
-- Redis
-- PostgreSQL
-- Docker
+- **Frontend**: React 18 + TypeScript + Vite + Semantic UI
+- **Backend**: Bun + Express + Socket.IO + TypeScript
+- **Optional**: Redis (metrics), PostgreSQL (persistence), Docker (VBrowsers)
+- **Removed**: Firebase (auth), Stripe (payments), reCAPTCHA (spam protection)

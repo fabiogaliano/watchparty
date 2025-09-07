@@ -3,7 +3,6 @@ import config from './config.ts';
 import axios from 'axios';
 import { Server, Socket } from 'socket.io';
 
-import { getUser, validateUserToken } from './utils/firebase.ts';
 import { redis, redisCount, redisCountDistinct } from './utils/redis.ts';
 import { getIsSubscriberByEmail } from './utils/stripe.ts';
 import { AssignedVM } from './vm/base.ts';
@@ -113,18 +112,7 @@ export class Room {
           // User didn't have password, but check if they are owner
           const uid = socket.handshake.query?.uid;
           const token = socket.handshake.query?.token;
-          let isOwner = false;
-          const decoded = await validateUserToken(
-            uid as string,
-            token as string,
-          );
-          if (decoded) {
-            isOwner = result.rows[0]?.owner === decoded.uid;
-          }
-          if (!isOwner) {
-            next(new Error('not authorized'));
-            return;
-          }
+          // No auth required - room access is open
         }
         // Check if room is at capacity
         const isSubRoom = result.rows[0]?.isSubRoom;
@@ -478,16 +466,10 @@ export class Room {
     if (!data) {
       return;
     }
-    const decoded = await validateUserToken(data.uid, data.token);
-    if (decoded?.uid) {
-      this.uidMap[socket.id] = decoded.uid;
-    }
-    const isSubscriber = await getIsSubscriberByEmail(decoded?.email);
-    if (isSubscriber) {
-      const user = this.roster.find((user) => user.id === socket.id);
-      if (user) {
-        user.isSub = true;
-      }
+    // No auth required - all users are treated as subscribers
+    const user = this.roster.find((user) => user.id === socket.id);
+    if (user) {
+      user.isSub = true;
     }
   };
 
@@ -867,28 +849,7 @@ export class Room {
     const clientId = this.clientIdMap[socket.id];
     let uid: string = '';
 
-    // these checks are skipped if firebase not provided
-    if (config.FIREBASE_ADMIN_SDK_CONFIG) {
-      const decoded = await validateUserToken(data.uid, data.token);
-      if (!decoded || !decoded.uid) {
-        socket.emit('errorMessage', 'Invalid user token.');
-        return;
-      }
-
-      const user = await getUser(decoded.uid);
-      // Validate verified email if not a third-party auth provider
-      if (
-        user?.providerData[0].providerId === 'password' &&
-        !user?.emailVerified
-      ) {
-        socket.emit(
-          'errorMessage',
-          'A verified email is required to start a VBrowser.',
-        );
-        return;
-      }
-
-      uid = decoded.uid;
+    // No auth required - skip user validation
 
       // Log the vbrowser creation by uid and clientid
       if (redis) {
@@ -932,11 +893,8 @@ export class Room {
     }
     let isLarge = false;
     let region = '';
-    let isSubscriber = false;
-    if (data && data.uid && data.token) {
-      const decoded = await validateUserToken(data.uid, data.token);
-      isSubscriber = await getIsSubscriberByEmail(decoded?.email);
-    }
+    // No auth required - all users are subscribers
+    let isSubscriber = true;
     // Check if user is subscriber or firebase not configured, if so allow sub options
     if (isSubscriber || !config.FIREBASE_ADMIN_SDK_CONFIG) {
       isLarge = data.options?.size === 'large';
@@ -945,31 +903,7 @@ export class Room {
       }
     }
 
-    if (config.RECAPTCHA_SECRET_KEY) {
-      try {
-        // Validate the request isn't spam/automated
-        const validation = await axios({
-          url: `https://www.google.com/recaptcha/api/siteverify?secret=${config.RECAPTCHA_SECRET_KEY}&response=${data.rcToken}`,
-          method: 'POST',
-        });
-        // console.log(validation?.data);
-        const isLowScore = validation?.data?.score < 0.1;
-        const failed = validation?.data?.success === false;
-        if (failed || isLowScore) {
-          if (isLowScore) {
-            redisCount('recaptchaRejectsLowScore');
-          } else {
-            console.log('[RECAPTCHA] score: ', validation?.data);
-            redisCount('recaptchaRejectsOther');
-          }
-          socket.emit('errorMessage', 'Invalid ReCAPTCHA.');
-          return;
-        }
-      } catch (e) {
-        // if Recaptcha is down or other network issues, allow continuing
-        console.warn(e);
-      }
-    }
+    // reCAPTCHA disabled for self-hosted version
 
     redisCount('vBrowserStarts');
     this.cmdHost(socket, 'vbrowser://');
@@ -1077,15 +1011,8 @@ export class Room {
     if (!data) {
       return;
     }
-    const decoded = await validateUserToken(data.uid, data.token);
-    if (!decoded) {
-      return;
-    }
-    if (!this.validateLock(socket.id) && !this.validateOwner(decoded.uid)) {
-      return;
-    }
-    this.lock = data.locked ? decoded.uid : '';
-    this.io.of(this.roomId).emit('REC:lock', this.lock);
+    // No auth required - room locking disabled
+    return;
     const chatMsg = {
       id: socket.id,
       cmd: data.locked ? 'lock' : 'unlock',
@@ -1106,21 +1033,9 @@ export class Room {
       socket.emit('errorMessage', 'Database is not available');
       return;
     }
-    const decoded = await validateUserToken(
-      data?.uid as string,
-      data?.token as string,
-    );
-    if (!decoded) {
-      socket.emit('errorMessage', 'Failed to authenticate user');
-      return;
-    }
-    const owner = decoded.uid;
-    const isOwner = await this.validateOwner(decoded.uid);
-    if (!isOwner) {
-      socket.emit('errorMessage', 'Not current room owner');
-      return;
-    }
-    const isSubscriber = await getIsSubscriberByEmail(decoded?.email);
+    // No auth required - anyone can make permanent rooms
+    const owner = 'anonymous';
+    const isSubscriber = true;
     if (data.undo) {
       await updateObject(
         postgres,
@@ -1219,19 +1134,7 @@ export class Room {
       socket.emit('errorMessage', 'Database is not available');
       return;
     }
-    const decoded = await validateUserToken(
-      data?.uid as string,
-      data?.token as string,
-    );
-    if (!decoded) {
-      socket.emit('errorMessage', 'Failed to authenticate user');
-      return;
-    }
-    const isOwner = await this.validateOwner(decoded.uid);
-    if (!isOwner) {
-      socket.emit('errorMessage', 'Not current room owner');
-      return;
-    }
+    // No auth required - anyone can set room password
     const isSubscriber = await getIsSubscriberByEmail(decoded?.email);
     const {
       password,
@@ -1366,19 +1269,7 @@ export class Room {
       userToBeKicked: string;
     },
   ) => {
-    const decoded = await validateUserToken(
-      data?.uid as string,
-      data?.token as string,
-    );
-    if (!decoded) {
-      socket.emit('errorMessage', 'Failed to authenticate user');
-      return;
-    }
-    const isOwner = await this.validateOwner(decoded.uid);
-    if (!isOwner) {
-      socket.emit('errorMessage', 'Not current room owner');
-      return;
-    }
+    // No auth required - anyone can set room password
     const userToBeKickedSocket = this.io
       .of(this.roomId)
       .sockets.get(data.userToBeKicked);
@@ -1401,19 +1292,7 @@ export class Room {
       token: string;
     },
   ) => {
-    const decoded = await validateUserToken(
-      data?.uid as string,
-      data?.token as string,
-    );
-    if (!decoded) {
-      socket.emit('errorMessage', 'Failed to authenticate user');
-      return;
-    }
-    const isOwner = await this.validateOwner(decoded.uid);
-    if (!isOwner) {
-      socket.emit('errorMessage', 'Not current room owner');
-      return;
-    }
+    // No auth required - anyone can set room password
     if (!data.timestamp && !data.author) {
       this.chat.length = 0;
     } else {

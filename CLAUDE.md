@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WatchParty is a web application for synchronized video watching with features like screen sharing, virtual browsers, chat, and video calls. It's built with React + TypeScript frontend and Node.js + TypeScript backend using Socket.IO for real-time communication.
+WatchParty is a **self-hosted** web application for synchronized video watching with features like screen sharing, virtual browsers, chat, and video calls. This version has been modified to remove SaaS limitations and authentication requirements for private deployment. It's built with React + TypeScript frontend and Node.js + TypeScript backend using Socket.IO for real-time communication.
 
 ## Architecture
 
@@ -18,9 +18,10 @@ WatchParty is a web application for synchronized video watching with features li
 ### Backend (`server/`)
 - **Bun** runtime with TypeScript using **bun --watch** for development hot reload
 - **Express** server with **Socket.IO** for WebSocket handling
-- **Room-based architecture** - each room manages synchronized playback state
+- **Room-based architecture** - each room manages synchronized playbook state (max 5 users per room)
 - **VM management** for virtual browsers (Docker/DigitalOcean/Hetzner/Scaleway providers)
-- **Optional services**: Redis (metrics), PostgreSQL (persistence), Firebase (auth), Stripe (subscriptions)
+- **Access control** - Simple token-based pre-authentication for private deployments
+- **Optional services**: Redis (metrics), PostgreSQL (persistence) - **Auth removed** (Firebase/Stripe disabled)
 
 ### Key Backend Components
 - `server/server.ts` - Main Express server and Socket.IO setup
@@ -63,14 +64,25 @@ bun run testvlc      # Test VLC virtual browser
 
 ## Configuration
 
+### Self-Hosted Access Control
 - Copy `.env.example` to `.env` for configuration
+- **Access Control** (optional but recommended):
+  ```bash
+  WATCHPARTY_ACCESS_TOKEN=your_secret_password_here
+  WATCHPARTY_ACCESS_EXPIRY=24  # Hours until token expires
+  ```
+
+### Optional Services
 - **Required for basic functionality**: None (works without external services)
 - **Optional services** (see server/config.ts for full list):
   - `YOUTUBE_API_KEY` - Enable YouTube video search
-  - `VITE_FIREBASE_CONFIG` + `FIREBASE_ADMIN_SDK_CONFIG` - User authentication
   - `DATABASE_URL` - Room persistence (PostgreSQL)
   - `REDIS_URL` - Metrics and caching
   - VM provider tokens for virtual browsers
+  - ~~`VITE_FIREBASE_CONFIG`~~ - **Removed** (authentication disabled)
+  - ~~`FIREBASE_ADMIN_SDK_CONFIG`~~ - **Removed** (authentication disabled)
+  - ~~`STRIPE_SECRET_KEY`~~ - **Removed** (subscriptions disabled)
+  - ~~`RECAPTCHA_SECRET_KEY`~~ - **Removed** (VBrowser protection disabled)
 
 ## Media Support
 
@@ -82,6 +94,23 @@ The app handles various media types through detection utilities:
 - File shares (`isFileShare()`)
 - Screen shares (`isScreenShare()`)
 - Virtual browsers (`isVBrowser()`)
+
+## Self-Hosted Version Changes
+
+### Removed SaaS Limitations
+- ✅ **No user authentication required** - Firebase/auth completely removed
+- ✅ **No subscription limits** - All users treated as "subscribers" 
+- ✅ **No reCAPTCHA for VBrowsers** - Spam protection disabled
+- ✅ **Room capacity**: Limited to 5 users per room (configurable)
+- ✅ **VBrowser sessions**: Extended to 5 hours (was 3 hours)
+- ✅ **Access control**: Optional token-based pre-auth for private deployment
+
+### Access Control System
+- Simple password/token system protects the entire application
+- Login form appears before main WatchParty interface
+- Configurable token expiry (default: 24 hours)
+- Remember login option (localStorage vs sessionStorage)
+- If `WATCHPARTY_ACCESS_TOKEN` is not set, no auth required
 
 ## Development Notes
 

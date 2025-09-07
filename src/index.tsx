@@ -9,21 +9,16 @@ import { Home } from './components/Home';
 import { Privacy, Terms, FAQ, DiscordBot } from './components/Pages/Pages';
 import { TopBar } from './components/TopBar/TopBar';
 import { Footer } from './components/Footer/Footer';
-import firebase from 'firebase/compat/app';
-import 'firebase/auth';
 import { serverPath } from './utils';
 import { Create } from './components/Create/Create';
 import { Discord } from './components/Discord/Discord';
 import 'semantic-ui-css/semantic.min.css';
 import config from './config';
 import { DEFAULT_STATE, MetadataContext } from './MetadataContext';
+import { AccessControl } from './components/AccessControl/AccessControl';
 
 const Debug = lazy(() => import('./components/Debug/Debug'));
 
-const firebaseConfig = config.VITE_FIREBASE_CONFIG;
-if (firebaseConfig) {
-  firebase.initializeApp(JSON.parse(firebaseConfig));
-}
 
 // Redirect old-style URLs
 if (window.location.hash && window.location.pathname === '/') {
@@ -34,35 +29,17 @@ if (window.location.hash && window.location.pathname === '/') {
 class WatchParty extends React.Component {
   public state = DEFAULT_STATE;
   async componentDidMount() {
-    if (firebaseConfig) {
-      firebase.auth().onAuthStateChanged(async (user: firebase.User | null) => {
-        if (user) {
-          // console.log(user);
-          this.setState({ user });
-          const token = await user.getIdToken();
-          const response = await window.fetch(
-            serverPath + `/metadata?uid=${user.uid}&token=${token}`,
-          );
-          const data = await response.json();
-          this.setState({
-            isSubscriber: data.isSubscriber,
-            streamPath: data.streamPath,
-            beta: data.beta,
-          });
-        }
-      });
-    } else {
-      // Firebase isn't set up so enable subscriber features
-      this.setState({
-        isSubscriber: true,
-      });
-    }
+    // No auth required - enable all subscriber features
+    this.setState({
+      isSubscriber: true,
+    });
   }
   render() {
     return (
       // <React.StrictMode>
       <MetadataContext.Provider value={this.state}>
-        <BrowserRouter>
+        <AccessControl>
+          <BrowserRouter>
           <Route
             path="/"
             exact
@@ -127,7 +104,8 @@ class WatchParty extends React.Component {
             </Suspense>
             <Footer />
           </Route>
-        </BrowserRouter>
+          </BrowserRouter>
+        </AccessControl>
       </MetadataContext.Provider>
       // </React.StrictMode>
     );
