@@ -1,6 +1,6 @@
 # WatchParty (Self-Hosted)
 
-![screenshot](https://github.com/howardchung/watchparty/raw/main/public/screenshot_full.png)
+![screenshot](https://github.com/fabiogaliano/watchparty/raw/main/public/screenshot_full.png)
 
 A **self-hosted** web application for watching videos together - **no authentication required**.
 
