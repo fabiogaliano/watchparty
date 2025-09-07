@@ -32,7 +32,7 @@ const defaults = {
   RECAPTCHA_SECRET_KEY: '', // Optional, Recaptcha for VBrowser creation
   SSL_KEY_FILE: '', // Optional, Filename of SSL key (to use https)
   SSL_CRT_FILE: '', // Optional, Filename of SSL cert (to use https)
-  PORT: 8080, // Port to use for server
+  PORT: 3000, // Port to use for server
   HOST: '0.0.0.0', // Host interface to bind server to
   STATS_KEY: '', // Secret string to validate viewing stats
   BETA_USER_EMAILS: '', // Comma-delimited list of user emails to include in the beta

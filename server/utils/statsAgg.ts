@@ -5,7 +5,7 @@ import { apps } from '../ecosystem.config.js';
 export async function statsAgg() {
   const ports =
     process.env.NODE_ENV === 'development'
-      ? [8080]
+      ? [config.PORT]
       : apps.map((app) => app.env?.PORT).filter(Boolean);
 
   const shardReqs = ports.map((port) =>

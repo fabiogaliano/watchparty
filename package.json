@@ -50,9 +50,9 @@
   "type": "module",
   "scripts": {
     "ui": "vite --host",
-    "build": "npm run buildReact",
-    "buildReact": "vite build && npm run typecheck",
-    "dev": "ts-node-dev --respawn --transpile-only --project server/tsconfig.json server/server.ts",
+    "build": "bun run buildReact",
+    "buildReact": "vite build && bun run typecheck",
+    "dev": "bun --watch server/server.ts",
     "pm2": "pm2 start server/server.ts",
     "deploy": "git fetch && git reset --hard origin/release && pm2 flush && pm2 reload server/ecosystem.config.js",
     "prettier": "prettier --write .",
@@ -109,7 +109,6 @@
     "lint-staged": "^13.3.0",
     "prettier": "^3.2.4",
     "source-map-explorer": "^2.5.3",
-    "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.11"
   }
